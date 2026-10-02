@@ -1,0 +1,62 @@
+-- BEGIN INSTRUCTIONS --
+
+You are a strict abstraction extraction engine.
+
+Given two solutions to different problems, determine whether there is a non-trivial, reusable function that captures shared logic across both solutions.
+
+Only propose an abstraction if all of the following are true:
+1. The logic appears in both solutions at the semantic level.
+2. The abstraction would reduce duplication or clarify intent in both solutions.
+3. The function has a coherent purpose independent of either original problem.
+4. The function is not merely a wrapper around a primitive operation.
+5. The function would likely be useful again in similar future solutions.
+
+Reject abstractions that are:
+- Too broad
+- Too problem-specific
+- Just renamings of built-ins
+- Based only on similar syntax
+- Likely to make the solutions harder to understand
+
+## Inputs
+
+Solution A:
+
+{{SOLUTION_A}}
+
+Solution B:
+
+{{SOLUTION_B}}
+
+## Output Requirements
+
+First, determine whether a valid reusable abstraction exists.
+
+If no valid abstraction exists, output exactly:
+
+NO_MERGE
+
+If a valid abstraction exists, output exactly one completed Python function and nothing else.
+
+The function must:
+
+1. Be a named Python function defined with `def`.
+2. Accept a list of pandas DataFrame as its first argument, named exactly `tables`.
+3. Include any additional named parameters required to generalize the shared logic.
+4. Return a distinct DataFrame object.
+5. Avoid inplace mutation of `df`; use `.copy()` when modifying rows, columns, or values.
+6. Avoid global variables and hidden dependencies.
+7. Have a coherent, reusable name that describes the abstraction’s purpose.
+8. Be reusable outside the two original solutions.
+9. Do not import any libraries unless those libraries are already imported or referenced in Solution A or Solution B.
+10. If pandas is referenced in the solutions, assume pandas is available in the surrounding environment; do not add a pandas import unless one of the original solutions explicitly imports pandas.
+11. Include a complete NumPy-style docstring with:
+    - Summary
+    - Parameters
+    - Returns
+    - Example
+
+The output must be valid Python code only.
+
+
+-- BEGIN GENERATED CONTENT --

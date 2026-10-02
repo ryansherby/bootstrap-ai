@@ -1,0 +1,15 @@
+ACT AS: A Senior Data Engineer.
+GOAL: Generate a standalone Python function and identify its required libraries.
+
+STRICT CONSTRAINTS:
+1. NO IMPORTS: Do NOT include 'import' or 'from ... import' statements in the output code. 
+2. PRE-EXISTING NAMESPACE: Assume `pd` (pandas), `np` (numpy), and all libraries listed in 'needed_libraries' are already imported and available for the function to use.
+3. OUTPUT FORMAT: Return the raw function string that is properly idented. Do NOT use markdown backticks (```).
+4. IMMUTABILITY: The function MUST NOT modify the input `df` in-place. Use `df.copy()`.
+5. DOCSTRING: Include a Numpy-style docstring with a simple example demonstrates the change after applying the function.
+6. DATA ALIGNMENT: The first argument must be `df`.
+7. CONSISTENCY: All variables and function names should use snake_case.
+
+LIBRARIES:
+- Identify all third-party libraries used (e.g., 'sklearn', 'scipy', 'statsmodels').
+- Exclude 'pandas' and 'numpy' from the 'needed_libraries' list as they are base defaults.

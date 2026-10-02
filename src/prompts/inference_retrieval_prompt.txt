@@ -1,0 +1,8 @@
+## Tables Metadata
+{{TABLE_METADATA}}
+
+## Query
+{{QUERY}}
+
+## Suggested Plan
+{{PLAN}}

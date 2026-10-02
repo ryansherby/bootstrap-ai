@@ -1,0 +1,521 @@
+-- BEGIN INSTRUCTIONS --
+
+You are determining how two pandas DataFrames should be compared when evaluating whether a requested transformation was performed correctly.
+
+You are not performing the transformation, generating an expected output, or comparing the DataFrames yourself. Your only task is to infer which DataFrame properties are semantically required by the transformation instructions.
+
+## Inputs
+
+{{CONTENT}}
+
+The input may include:
+
+* Input table metadata
+* Table positions and names
+* Column names
+* Row counts
+* Unique values or example values
+* A function name, signature, or stub
+* A function docstring
+* Function parameters
+
+Use this information only to infer the intended transformation semantics.
+
+Do not infer that a property matters merely because it happens to appear in the input metadata. For example, the existence of a particular input index, dtype, row order, or column order does not make that property part of the required output unless the transformation semantics require it.
+
+## Output
+
+Return exactly one Python dictionary with the following keys and Python boolean values:
+
+{
+"row_order_matters": bool,
+"column_order_matters": bool,
+"index_matters": bool,
+"column_names_matter": bool,
+"dtypes_matter": bool,
+"row_count_must_match": bool,
+"column_count_must_match": bool,
+"duplicate_counts_must_match": bool,
+"numeric_values_must_match_exactly": bool,
+"string_case_matters": bool,
+"string_whitespace_matters": bool,
+"null_representation_matters": bool
+}
+
+Do not return explanations, Markdown, code fences, comments, confidence scores, additional keys, or any text outside the dictionary.
+
+## Core decision procedure
+
+Begin with these default values:
+
+{
+"row_order_matters": False,
+"column_order_matters": False,
+"index_matters": False,
+"column_names_matter": True,
+"dtypes_matter": False,
+"row_count_must_match": True,
+"column_count_must_match": True,
+"duplicate_counts_must_match": True,
+"numeric_values_must_match_exactly": True,
+"string_case_matters": True,
+"string_whitespace_matters": True,
+"null_representation_matters": False
+}
+
+The defaults have two different directions.
+
+### Constraint-added properties
+
+The following properties default to `False` because they should be enforced only when the transformation affirmatively requires them:
+
+* `row_order_matters`
+* `column_order_matters`
+* `index_matters`
+* `dtypes_matter`
+* `null_representation_matters`
+
+Set one of these properties to `True` only when the transformation explicitly or inherently requires it.
+
+Absence of evidence is not sufficient to set it to `True`.
+
+### Relaxable properties
+
+The following properties default to `True` because they protect against accepting an incorrect transformation:
+
+* `column_names_matter`
+* `row_count_must_match`
+* `column_count_must_match`
+* `duplicate_counts_must_match`
+* `numeric_values_must_match_exactly`
+* `string_case_matters`
+* `string_whitespace_matters`
+
+Set one of these properties to `False` only when the transformation explicitly or inherently makes that property irrelevant.
+
+Absence of evidence is not sufficient to relax it.
+
+### Uncertainty rule
+
+When the available information does not clearly determine a property, return its default value.
+
+Do not invent requirements. Do not relax a default merely because relaxing it might make comparison easier.
+
+## Flag meanings
+
+* `row_order_matters`: Whether corresponding complete rows must appear in the same order.
+* `column_order_matters`: Whether output columns must appear in the same order.
+* `index_matters`: Whether index values, ordering, names, levels, or structure are part of the required output.
+* `column_names_matter`: Whether output column labels must match.
+* `dtypes_matter`: Whether pandas dtypes must match rather than only represented values.
+* `row_count_must_match`: Whether the produced DataFrame and correct expected DataFrame must contain the same number of rows.
+* `column_count_must_match`: Whether the produced DataFrame and correct expected DataFrame must contain the same number of columns.
+* `duplicate_counts_must_match`: Whether duplicate complete rows must occur the same number of times.
+* `numeric_values_must_match_exactly`: Whether numeric values require exact equality rather than tolerance-based equality.
+* `string_case_matters`: Whether uppercase and lowercase differences are significant.
+* `string_whitespace_matters`: Whether leading, trailing, or repeated whitespace differences are significant.
+* `null_representation_matters`: Whether different missing-value representations, such as `None`, `NaN`, `NaT`, and `pd.NA`, should be considered different.
+
+## Important comparison assumptions
+
+These flags describe the required semantics; they do not authorize unsafe comparison behavior.
+
+When `row_order_matters` is `False`, complete rows must still be compared atomically. Values from different columns must remain associated with the same row. Do not treat each column as an independent unordered collection.
+
+When `column_order_matters` is `False` and `column_names_matter` is `True`, columns should be aligned by name before complete rows are compared.
+
+`row_count_must_match` and `column_count_must_match` compare the produced DataFrame with the correct expected DataFrame. They do not compare the output shape with the input shape. A filtering or aggregation operation may change shape relative to its input while still requiring exact shape equality with the expected result.
+
+## Decision rules
+
+### Row order
+
+Default:
+
+`row_order_matters = False`
+
+Set it to `True` when the transformation explicitly or inherently requires row ordering, including:
+
+* Sorting rows
+* Ranking rows
+* Returning first or last rows
+* Selecting top or bottom N rows
+* Positional row selection
+* Slicing by row position
+* Sequential operations
+* Rolling or expanding operations
+* Cumulative operations
+* Lag, lead, shift, or difference operations
+* Forward fill or backward fill when order determines the result
+* Time-series operations where chronology matters
+* Preserving a specifically requested input order
+* Producing rows in an explicitly specified sequence
+
+Keep it `False` when the transformation defines which complete rows must be present but does not require their output sequence.
+
+Filtering does not by itself make row order significant unless order preservation is explicitly or inherently part of the requirement.
+
+Grouping or joining does not by itself make row order significant unless the required output order is specified.
+
+### Column order
+
+Default:
+
+`column_order_matters = False`
+
+Set it to `True` only when:
+
+* The output column order is explicitly specified
+* Columns are explicitly reordered
+* A list of output columns is required “in that order”
+* A positional column layout is semantically required
+* The output is intended for a format or downstream interface where position is significant
+
+Keep it `False` when the transformation requires named columns but does not require a particular sequence.
+
+Merely mentioning multiple columns does not establish that their order matters.
+
+### Index
+
+Default:
+
+`index_matters = False`
+
+Set it to `True` when the transformation explicitly or inherently:
+
+* Sets a column as the index
+* Resets the index
+* Creates a new index
+* Modifies index values
+* Sorts by the index
+* Names or renames the index
+* Creates or modifies a MultiIndex
+* Selects data by index labels
+* Requires preservation of a particular input index
+* Returns index values as a meaningful part of the result
+
+Keep it `False` when the index is merely incidental pandas metadata.
+
+Do not set it to `True` merely because pandas would naturally preserve an input index during an operation.
+
+### Column names
+
+Default:
+
+`column_names_matter = True`
+
+Keep it `True` when the transformation:
+
+* References columns by name
+* Selects named columns
+* Creates named columns
+* Removes named columns
+* Renames columns
+* Aggregates into named outputs
+* Produces a schema with meaningful labels
+
+Set it to `False` only when the output is explicitly defined entirely by column position and column labels are semantically irrelevant.
+
+When unsure, keep it `True`.
+
+### Data types
+
+Default:
+
+`dtypes_matter = False`
+
+Set it to `True` when the transformation explicitly requires:
+
+* Casting to a specified dtype
+* Parsing strings as datetime values
+* Producing categorical data
+* Producing nullable extension dtypes
+* Producing integer rather than floating-point values
+* Producing floating-point rather than integer values
+* Producing Boolean values
+* Producing strings rather than another representation
+* Preserving or changing timezone information
+* Any other specific pandas, NumPy, or extension dtype
+
+Keep it `False` when compatible dtypes representing the same semantic values would satisfy the transformation.
+
+Do not infer dtype strictness only from the input table’s current dtypes or example values.
+
+### Row count
+
+Default:
+
+`row_count_must_match = True`
+
+Keep it `True` for ordinary transformations, including:
+
+* Filtering
+* Aggregation
+* Joining
+* Concatenation
+* Deduplication
+* Reshaping
+* Exploding
+* Sampling with a specified size
+* Selecting top or bottom rows
+
+These transformations may change row count relative to the input, but the produced output must still contain the same number of rows as the correct expected output.
+
+Set it to `False` only when the requirements explicitly permit additional or omitted output rows, such as:
+
+* Returning at least the required matching rows
+* Allowing supplementary diagnostic rows
+* Allowing implementation-dependent extra records
+* Evaluating only whether certain required rows are present
+
+When unsure, keep it `True`.
+
+### Column count
+
+Default:
+
+`column_count_must_match = True`
+
+Keep it `True` when the transformation defines a particular output schema, even when that schema differs from the input schema.
+
+Set it to `False` only when the requirements explicitly allow extra or omitted output columns, such as:
+
+* Allowing supplementary diagnostic columns
+* Requiring only a subset of columns to be present
+* Permitting implementation-dependent metadata columns
+
+When unsure, keep it `True`.
+
+### Duplicate counts
+
+Default:
+
+`duplicate_counts_must_match = True`
+
+Keep it `True` for ordinary DataFrame transformations.
+
+Duplicate multiplicity can be semantically important and can reveal errors such as:
+
+* Incorrect joins
+* Cartesian products
+* Accidental deduplication
+* Repeated aggregation results
+* Missing repeated records
+* Incorrect concatenation
+
+Set it to `False` only when:
+
+* The output is explicitly treated as a mathematical set
+* Only distinct row membership matters
+* Duplicate multiplicity is explicitly declared irrelevant
+
+A request to remove duplicates does not normally justify setting this flag to `False`. The correct deduplicated output should still contain each expected distinct row the correct number of times, normally once.
+
+When unsure, keep it `True`.
+
+### Numeric equality
+
+Default:
+
+`numeric_values_must_match_exactly = True`
+
+Set it to `False` when the transformation involves computations likely to produce harmless floating-point differences, including:
+
+* Division
+* Means or averages
+* Statistical calculations
+* Normalization or standardization
+* Floating-point multiplication
+* Floating-point aggregation
+* Probabilities
+* Ratios
+* Trigonometric or logarithmic functions
+* Iterative numerical methods
+* Other nontrivial floating-point arithmetic
+
+Keep it `True` for:
+
+* Identifiers
+* Exact counts
+* Integer-only arithmetic
+* Exact comparisons
+* Explicitly rounded values
+* Values explicitly required to equal a particular number
+* Operations that only copy, select, rename, filter, or rearrange existing numeric values
+* Discrete codes or labels represented numerically
+
+Casting a value to float does not by itself require tolerance if no approximate arithmetic occurs. However, use `False` when the required transformation explicitly accepts normal floating-point approximation.
+
+When unsure, keep it `True`.
+
+### String case
+
+Default:
+
+`string_case_matters = True`
+
+Set it to `False` only when the transformation explicitly or inherently:
+
+* Performs case-insensitive matching
+* Converts strings to lowercase
+* Converts strings to uppercase
+* Applies case folding
+* Otherwise declares case differences irrelevant
+
+Keep it `True` when strings are copied, filtered, grouped, joined, or compared without case normalization.
+
+Do not infer case-insensitivity from example values.
+
+### String whitespace
+
+Default:
+
+`string_whitespace_matters = True`
+
+Set it to `False` only when the transformation explicitly or inherently:
+
+* Trims leading or trailing whitespace
+* Collapses repeated whitespace
+* Normalizes whitespace
+* Tokenizes strings in a way that makes whitespace formatting irrelevant
+* Otherwise declares whitespace differences irrelevant
+
+Keep it `True` when strings are copied, filtered, grouped, joined, or compared without whitespace normalization.
+
+Do not infer whitespace irrelevance merely because example strings do not contain whitespace.
+
+### Null representation
+
+Default:
+
+`null_representation_matters = False`
+
+Set it to `True` only when the transformation explicitly requires a particular missing-value representation, dtype-specific null sentinel, or distinction among representations such as:
+
+* Requiring `pd.NA`
+* Requiring `np.nan`
+* Requiring `None`
+* Requiring `NaT`
+* Requiring a nullable dtype whose missing representation is part of the specification
+* Distinguishing different kinds of missing values as meaningful output
+
+Keep it `False` when different missing-value representations are semantically equivalent.
+
+Do not set it to `True` merely because the function may naturally produce one pandas null representation rather than another.
+
+## Evidence priority
+
+Use evidence in this order:
+
+1. Explicit transformation requirements in the docstring or description
+2. Inherent semantics of the requested operation
+3. Function parameters that determine behavior
+4. Function name and signature
+5. Input table metadata
+
+Do not let incidental input metadata override explicit transformation semantics.
+
+Unique values, row counts, input ordering, and observed schemas may help identify referenced columns or operation types, but they do not independently establish output comparison requirements.
+
+## Conflict handling
+
+When pieces of evidence conflict:
+
+* Prefer explicit instructions over inferred behavior
+* Prefer function parameters over assumptions based on the function name
+* Prefer semantic requirements over incidental pandas implementation behavior
+* Preserve the default value when the conflict cannot be resolved
+
+## Examples
+
+Transformation requirement:
+
+“Filter the rows where `status` is active and add a `total` column equal to `price * quantity`.”
+
+Output:
+
+{
+"row_order_matters": False,
+"column_order_matters": False,
+"index_matters": False,
+"column_names_matter": True,
+"dtypes_matter": False,
+"row_count_must_match": True,
+"column_count_must_match": True,
+"duplicate_counts_must_match": True,
+"numeric_values_must_match_exactly": False,
+"string_case_matters": True,
+"string_whitespace_matters": True,
+"null_representation_matters": False
+}
+
+Transformation requirement:
+
+“Sort the rows by `created_at` ascending, break ties by `id` descending, and reset the index.”
+
+Output:
+
+{
+"row_order_matters": True,
+"column_order_matters": False,
+"index_matters": True,
+"column_names_matter": True,
+"dtypes_matter": False,
+"row_count_must_match": True,
+"column_count_must_match": True,
+"duplicate_counts_must_match": True,
+"numeric_values_must_match_exactly": True,
+"string_case_matters": True,
+"string_whitespace_matters": True,
+"null_representation_matters": False
+}
+
+Transformation requirement:
+
+“Return the columns `customer_id`, `date`, and `amount`, in that order. Parse `date` as datetime and cast `amount` to float.”
+
+Output:
+
+{
+"row_order_matters": False,
+"column_order_matters": True,
+"index_matters": False,
+"column_names_matter": True,
+"dtypes_matter": True,
+"row_count_must_match": True,
+"column_count_must_match": True,
+"duplicate_counts_must_match": True,
+"numeric_values_must_match_exactly": True,
+"string_case_matters": True,
+"string_whitespace_matters": True,
+"null_representation_matters": False
+}
+
+Transformation requirement:
+
+“Return the distinct combinations of `customer_id` and `product_id`. The order of rows and columns is irrelevant.”
+
+Output:
+
+{
+"row_order_matters": False,
+"column_order_matters": False,
+"index_matters": False,
+"column_names_matter": True,
+"dtypes_matter": False,
+"row_count_must_match": True,
+"column_count_must_match": True,
+"duplicate_counts_must_match": True,
+"numeric_values_must_match_exactly": True,
+"string_case_matters": True,
+"string_whitespace_matters": True,
+"null_representation_matters": False
+}
+
+The duplicate count flag remains `True` in the previous example because the correct distinct result should contain each complete row exactly once. Set it to `False` only when duplicate multiplicity itself is explicitly irrelevant during evaluation.
+
+Now analyze the provided transformation requirements and return only the Python dictionary.
+
+-- END INSTRUCTIONS --
+
+-- BEGIN GENERATED CONTENT --

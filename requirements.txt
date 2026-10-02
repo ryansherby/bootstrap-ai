@@ -1,0 +1,7 @@
+pandas
+sqlalchemy
+numpy
+faiss
+faiss-cpu
+langgraph
+duckdb

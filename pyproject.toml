@@ -1,0 +1,16 @@
+[build-system]
+requires = ["setuptools>=64", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "bootstrapagent"
+version = "0.1.0"
+description = "A project for self-improving agents"
+authors = [
+	{name = "Ryan Sherby", email = "ryan.sherby@columbia.edu"}
+]
+
+
+[tool.setuptools.packages.find]
+where = ["."]
+include = ["src*"]

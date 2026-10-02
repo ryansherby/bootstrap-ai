@@ -1,0 +1,193 @@
+-- BEGIN INSTRUCTIONS --
+
+You are generating a compact test case for a Python dataframe-transformation function. You are given the function’s public contract as a function stub. The implementation has intentionally been replaced with `...`.
+
+## Transformation function
+
+{{CODE_SNIPPETS}}
+
+Analyze the function’s signature, docstring, parameters, and documented return value(s).
+
+Return exactly one valid Python dictionary with this structure:
+
+```python
+{
+    "input_data": [
+        {
+            "<column_name>": [<row_1_value>, <row_2_value>, ...],
+            ...
+        },
+        ...
+    ],
+    "parameters": {
+        "<keyword_parameter>": <value>,
+        ...
+    },
+    "output_data": [
+        {
+            "<column_name>": [<row_1_value>, <row_2_value>, ...],
+            ...
+        },
+        ...
+    ]
+}
+```
+
+`input_data` and `output_data` must always be lists, even when the function consumes or returns only one dataframe.
+
+The number and order of dataframe objects in each list must be inferred from the function contract:
+
+* `input_data` must contain exactly one entry for each dataframe input required for a single invocation of the transformation function.
+* `output_data` must contain exactly one entry for each dataframe produced by a single invocation of the transformation function.
+* Preserve the dataframe input order specified by the function signature.
+* Preserve the dataframe output order specified by the documented return value.
+* Do not add extra sample dataframes merely to demonstrate additional cases.
+* If the function takes one dataframe and returns one dataframe, both lists must contain exactly one entry.
+* If the function joins or otherwise combines multiple dataframe inputs, `input_data` must contain the corresponding number of input dataframes.
+* If the function splits one dataframe into multiple dataframe outputs, `output_data` must contain the corresponding number of output dataframes.
+* If the function consumes multiple dataframes and returns multiple dataframes, both list lengths must match the exact contract for one invocation.
+
+The generated dictionary must satisfy all of the following requirements:
+
+1. Every entry in `input_data` must be directly usable as:
+
+   ```python
+   pandas.DataFrame(input_data_entry)
+   ```
+
+2. Each input dataframe must contain between 1 and 10 rows unless an empty dataframe is explicitly relevant to and supported by the function contract.
+
+3. Within each dataframe, every column must contain the same number of values. Different input dataframes may have different row counts when supported by the transformation.
+
+4. `parameters` must contain only non-dataframe keyword arguments accepted by the transformation function.
+
+5. Construct the dataframe arguments in the same order in which dataframe inputs appear in the function signature. Conceptually, the transformation must be executable as:
+
+   ```python
+   input_dfs = [
+       pandas.DataFrame(data)
+       for data in result["input_data"]
+   ]
+
+   output = transformation_function(
+       *input_dfs,
+       **result["parameters"]
+   )
+   ```
+
+   Assume dataframe parameters are supplied positionally in their signature order and non-dataframe parameters are supplied through `parameters`.
+
+6. Interpret the function result according to its documented return contract:
+
+   * If the function returns a single dataframe, treat it as a one-element sequence:
+
+     ```python
+     output_dfs = [output]
+     ```
+
+   * If the function returns multiple dataframes as a tuple or list, treat each returned dataframe as one element:
+
+     ```python
+     output_dfs = list(output)
+     ```
+
+   `output_data` must contain exactly the same number of dataframe entries as `output_dfs`.
+
+7. Every entry in `output_data` must exactly represent the corresponding expected transformed dataframe in the equivalent of:
+
+   ```python
+   output_df.to_dict(orient="list")
+   ```
+
+8. Compute every expected output by carefully applying the function’s proposed transformation. Do not merely propose plausible outputs.
+
+9. Choose input values that meaningfully exercise the transformation. Across the required dataframe inputs, include multiple relevant cases when they can fit within the row limits, such as:
+
+   * values that are changed and unchanged;
+   * matching and nonmatching rows;
+   * successful and unsuccessful join keys;
+   * one-to-one, one-to-many, or duplicate join keys when relevant;
+   * grouping boundaries;
+   * duplicate values;
+   * missing values;
+   * sorting behavior;
+   * filtering behavior;
+   * rows routed to different output dataframes when the function performs a split.
+
+   Include these cases only when they are relevant and supported by the function.
+
+10. Do not intentionally trigger an exception unless the function is specifically intended to validate invalid input.
+
+11. Preserve the exact expected:
+
+    * number of dataframe inputs;
+    * number of dataframe outputs;
+    * dataframe input order;
+    * dataframe output order;
+    * column names;
+    * column order;
+    * row order;
+    * values;
+    * number of rows in each dataframe.
+
+12. Do not combine multiple logical dataframe inputs into one dictionary.
+
+13. Do not combine multiple logical dataframe outputs into one dictionary.
+
+14. Do not create multiple independent test cases. The returned object must represent exactly one invocation of the transformation function. Multiple entries in `input_data` or `output_data` represent multiple dataframe arguments or return values belonging to that single invocation.
+
+15. Use only valid Python literal values inside the returned object:
+
+    * strings;
+    * integers;
+    * floats;
+    * booleans;
+    * `None`;
+    * lists;
+    * dictionaries;
+    * tuples, only when required by a non-dataframe function parameter.
+
+16. Use Python syntax rather than JSON syntax. In particular, use `True`, `False`, and `None`, not `true`, `false`, or `null`.
+
+17. Do not use variables, function calls, dataframe constructors, NumPy objects, comments, markdown, code fences, or explanatory text in the response.
+
+18. Return only the Python dictionary object. The response must be parseable using:
+
+    ```python
+    ast.literal_eval(response)
+    ```
+
+Before responding, internally verify the equivalent of:
+
+```python
+input_dfs = [
+    pandas.DataFrame(data)
+    for data in result["input_data"]
+]
+
+actual_result = transformation_function(
+    *input_dfs,
+    **result["parameters"]
+)
+
+if isinstance(actual_result, pandas.DataFrame):
+    actual_dfs = [actual_result]
+else:
+    actual_dfs = list(actual_result)
+
+expected_dfs = [
+    pandas.DataFrame(data)
+    for data in result["output_data"]
+]
+
+assert len(actual_dfs) == len(expected_dfs)
+
+for actual, expected in zip(actual_dfs, expected_dfs):
+    actual = actual.reset_index(drop=True)
+    expected = expected.reset_index(drop=True)
+
+    # Verify that actual and expected contain equivalent dataframe data,
+    # including exact column order, row order, values, and row count.
+```
+
+-- BEGIN GENERATED CONTENT --

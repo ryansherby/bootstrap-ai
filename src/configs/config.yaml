@@ -1,0 +1,58 @@
+root: "{project_root:}"
+
+debug: True
+
+
+max_workers: 16
+workers:
+  transformer: 8
+  vdb_search: 16
+
+library_path: "${root}/src/library"
+
+vectordb_path: "${root}/src/vectordb"
+
+facts_db_path: "${root}/src/facts_db"
+
+temp_path: "${root}/src/tmp/solutions"
+merge_temp_path: "${root}/src/tmp/merges"
+
+batch_size: 'all'
+
+epochs: 10
+
+device: "cpu"
+
+
+vector_db:
+  name: "faiss"
+  mmr_lambda: 0.5
+  mmr_scaler: 10
+  max_size: null
+  nprobe: 16
+  inference_retrieval_threshold: 0.0
+  inference_retrieval_top_k: 5
+  merge_retrieval_threshold: 0.7
+  merge_retrieval_top_k: 3 # Will attempt to match with the best, unique function out of the top 3 most similar functions. If no unique function is found, it will not merge.
+  mmr_retrieval: True
+
+
+
+embedding_model:
+  name: "bert"
+  model: "answerdotai/ModernBERT-base"
+  dimensions: 768
+  padding: True
+  inference_retrieval_prompt_path: "${root}/src/prompts/inference_retrieval_prompt.txt"
+
+transformer_model:
+  name: "gpt"
+  model: "gpt-4.1-mini"
+  temperature: 0.0
+  merge_prompt_path: "${root}/src/prompts/merge_prompt.txt"
+  code_prompt_path: "${root}/src/prompts/code_prompt.txt"
+  plan_prompt_path: "${root}/src/prompts/plan_prompt.txt"
+  test_prompt_path: "${root}/src/prompts/test_prompt.txt"
+  comparison_rules_prompt_path: "${root}/src/prompts/comparison_rules_prompt.txt"
+  max_retries: 5
+
